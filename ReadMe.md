@@ -5,10 +5,9 @@
 As an urban planner and policy analyst, I have to do a lot of data analysis of spatial data. But there are few good introductions to the types of analyses which are common and useful, and how to go about them. This brief tutorial and the accompanying code should guide readers through some of this territory, with the help of using the simple features (`sf`) package for spatial data. I will leave most GIScience and spatial analysis for future introductions. Where this everything should be extremely clear, and the workflows should be the most optimal for data analysis. I'll cover:
 
 - Importing spatial data into R
-- Visualizing spatial data
 - Performing a spatial join
 - Performing a dissolve
-- Performing basic spatial data exploration
+- Visualizing spatial data
 
 More advanced operations may be added in the future.
 
@@ -79,7 +78,7 @@ names[1] <-"X"
 colnames(collisions) <- names
 collisions <- na.omit(collisions)
 ```
-Then I will filter to retrieve the collisions from 2018. This involves some data manipulation with `ddplyr`. First, I select only the x and y columns and the date variable. I choose to rename the variables as I go (by specifying first the desired field name just for ease of reference. Then I create a field with `mutate()` in which I extract the first four characters of the date variable. For this I use the substring function `substr`, in which I specify the point to start and stop extracting characters in the date string. Since I am only going to be using dates from 2018, I actually replace the old date field by assigning it the same variable name ("date"). From there, I filter for the values of 2018 and then drop the date field, leaving me with just the coordinates:
+Then I will filter to retrieve the collisions from 2018. This involves some data manipulation with `dplyr`. First, I select only the x and y columns and the date variable. I choose to rename the variables as I go (by specifying first the desired field name just for ease of reference. Then I create a field with `mutate()` in which I extract the first four characters of the date variable. For this I use the substring function `substr`, in which I specify the point to start and stop extracting characters in the date string. Since I am only going to be using dates from 2018, I actually replace the old date field by assigning it the same variable name ("date"). From there, I filter for the values of 2018 and then drop the date field, leaving me with just the coordinates:
 ```
 collisions <- collisions %>%
   select(x = X, y = Y, date = INCDATE) %>%
@@ -96,8 +95,8 @@ collisions_sf <- st_as_sf(collisions,
 ```
 We can plot the result. This takes a little while with ggplot given the size of the data frame. I have change the alpha of the points to make their frequency easier to display:
 ```
-ggplot(collisions_sf) +
-  geom_sf(alpha=.3)
+ggplot() +
+  geom_sf(data=collisions_sf, alpha=.3)
 ```
 ![plot5](/images/plot5.jpeg)
 
@@ -120,14 +119,14 @@ x        y OBJECTID PERIMETER            S_HOOD           ...
 And let's take a look at the data frame, too:
 
 # Summarizing the Data
-Now we want to count how many crashes are within the each neighborhood, and visualize the result. Since the `sf` objects are data frames, this operation can be done simply by summarizing the data as one would normally do with the `group_by()` and `summarize()` workflow of `ddplyr`, here `group_by()`, which will be set to the *S_HOOD* variable and `count()` (a quick call to just `count()` would have been sufficient, but I wanted to specify the variable name for future reference.)
+Now we want to count how many crashes are within the each neighborhood, and visualize the result. Since the `sf` objects are data frames, this operation can be done simply by summarizing the data as one would normally do with the `group_by()` and `summarize()` workflow of `dplyr`, here `group_by()`, which will be set to the *S_HOOD* variable and `count()` (a quick call to just `count()` would have been sufficient, but I wanted to specify the variable name for future reference.)
 
 The only additional step I have to consider in this operation is that we have to set aside the geometry data which attaches to each case of the spatial data, in order to perform the count. Freed of the geometries, we can then re-attach them by joining them the back to the original *neighborhoods* dataset. To do this, I then make a quick call to `as.data.frame()` before peforming the grouping and summarizing:
 ```
 collisions_count <- collisions_join %>%
-  as.data.frame() %>%  #use this to remove the sticky geometry
+  as.data.frame() %>%  #Use this to remove the sticky geometry
   group_by(S_HOOD) %>%
-  summarize(collisions_n = count())
+  summarize(collisions_n = n())
 ```
 This gives us the number of collisions per neighborhood:
 ```
