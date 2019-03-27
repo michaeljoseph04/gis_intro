@@ -6,7 +6,6 @@ As an urban planner and policy analyst, I have to do a lot of data analysis of s
 
 - Importing spatial data into R
 - Performing a spatial join
-- Performing a dissolve
 - Visualizing spatial data
 
 More advanced operations may be added in the future.
