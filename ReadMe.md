@@ -43,8 +43,8 @@ neighborhoods <- read_sf("project/data/City_Clerk_Neighborhoods.shp")
 ```
 We can immediately map the file with ggplot to see what looks like:
 ```
-ggplot(neighborhoods) +
-  geom_sf()
+ggplot() +
+  geom_sf(data = neighborhoods)
 ```
 ![plot1](/images/plot1.jpeg)
 
@@ -172,4 +172,4 @@ As you can see, R can do these basic operations rather easily. The only addition
 write_sf(neighborhood_collisions, "project/data/neighborhood_collisions.shp", delete_layer = TRUE)
 ```
 
-There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future. In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in r, which also involve including many of the traditional cartographic features useful for presentation-quality material.
+There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future. In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic features useful for presentation-quality material.
