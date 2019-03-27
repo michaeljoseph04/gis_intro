@@ -46,7 +46,7 @@ We can immediately map the file with ggplot to see what looks like:
 ggplot(neighborhoods) +
   geom_sf()
 ```
-![plot1](/images/plot1.jpg)
+![plot1](/images/plot1.jpeg)
 
 And we can see with `head()` (and `str()`) what the data looks like:
 ```
@@ -99,7 +99,7 @@ We can plot the result. This takes a little while with ggplot given the size of 
 ggplot(collisions_sf) +
   geom_sf(alpha=.3)
 ```
-![plot5](/images/plot5.jpg)
+![plot5](/images/plot5.jpeg)
 
 # Spatially Joining the Data
 
@@ -163,7 +163,7 @@ ggplot() +
   theme(axis.ticks.x = element_blank()) +
   theme(axis.ticks.y = element_blank())
   ```
-  ![plot6](/images/plot6.jpg)
+  ![plot6](/images/plot6.jpeg)
 
 # Conclusions
 
