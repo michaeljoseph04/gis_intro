@@ -1,8 +1,10 @@
-## GIS in R
+## GIS in R with sf
 
-*An Introduction to using R as a GIS for urban spatial analysts*
+*An introduction to using R as a GIS for urban spatial analysts*
 
-As an urban planner and policy analyst, I have to do a lot of data analysis of spatial data. But there are few good introductions to the types of analyses which are common and useful, and how to go about them. This brief tutorial and the accompanying code should guide readers through some of this territory, with the help of using the simple features (`sf`) package for spatial data. I will leave most GIScience and spatial analysis for future introductions. Where this everything should be extremely clear, and the workflows should be the most optimal for data analysis. I'll cover:
+As an urban policy analyst and planner, I have to do a lot of analysis of spatial data. But there are few introductions to the types of analyses which are common and useful in this area. This brief walkthrough and the accompanying code should guide readers through some of this territory, with the help of using the simple features (`sf`) package for spatial data. I will leave most GIScience and spatial analysis for future introductions. My primary aim is clarity in these introductions, and at the same time demonstrating the workflows most optimal for data analysis. Eventually, this work will migrate to a website and be featured in post form, but for now it is here.
+
+In this introduction I'll cover:
 
 - Importing spatial data into R
 - Performing a spatial join
@@ -24,7 +26,7 @@ Each of these files is available in the "data" folder above. Our workflow will i
 
 The result will produce a simple chloropleth map differentiating the count of the collisions across neighborhoods in Seattle.
 
-# Importing Data
+# Importing and Wrangling Data
 
 We will import all the libraries we need:
 ```
@@ -147,7 +149,7 @@ neighborhood_collisions <- left_join(neighborhoods,
                                      collisions_count,
                                      by="S_HOOD")
 ```
-Now let's plot the finished product with `ggplot()`. With a simple call to `geom_sf()`, mentioned earlier, we can specify that the `fill` should be the new variable we created which counts the number of collisions. I here also specify a scale fill, with some colors, and use the `comma` argument from the `scales` package to make sure that the data doesn't display in scientific format in the legend. The final thing is to remove the axis text and ticks:
+Now let's plot the finished product with `ggplot()`. With a simple call to `geom_sf()`, mentioned earlier, we can specify that the `fill` should be the new variable we created which counts the number of collisions. I here also specify a scale fill, with some colors, and use the `comma` argument from the `scales` package to make sure that the data doesn't display in scientific format in the legend. After setting the theme with `theme_bw()`, the final thing is to remove the axis text and ticks:
 ```
 ggplot() +
   geom_sf(data = neighborhood_collisions, aes(fill = collisions_n)) +
@@ -170,4 +172,6 @@ As you can see, R can do these basic operations rather easily. The only addition
 write_sf(neighborhood_collisions, "project/data/neighborhood_collisions.shp", delete_layer = TRUE)
 ```
 
-There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future. In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic features useful for presentation-quality material. You might also want to see the `sf` package's [documentation](https://r-spatial.github.io/sf/) for more information, in particular their [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/sf.pdf), which works as a handy graphical summary of the package's approach to many common spatial data manipulation operations.
+There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future.
+
+In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic elements useful for presentation-quality material. You might also want to see the `sf` package's [documentation](https://r-spatial.github.io/sf/) for more information, in particular their [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/sf.pdf), which works as a handy graphical summary of the package's approach to many common spatial data manipulation operations.
