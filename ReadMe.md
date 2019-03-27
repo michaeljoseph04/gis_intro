@@ -165,9 +165,22 @@ ggplot() +
   ```
   ![plot6](/images/plot6.jpeg)
 
+A common operation would be not plotting just the count but the count per area. The City Clerk neighborhood's file has this already calculated in square feet in the *AREA* field and so a simple change of the `fill` argument to `collisions_n/AREA` will plot the collisions per sq.ft., a more accurate and informative chloropleth map. If we wanted to make the calculation ourself, however, `st_area()` in `sf` allows us to do this (with the help of the `lgeom` package, which must be loaded), and the `units` package to convert the result, which is in square meters, to square feet. We then simply add this variable (after converting it to a decimal result) to our data (we can just use `$`) and use `mutate` to add another variable which would be the collisions per square foot. This then can be used for plotting the more accurate map, as far as chloropleths can truly be said to be accurate:
+```
+library(lwgeom)
+library(units)
+neighborhood_areas <- st_area(neighborhood_collisions)
+units(neighborhood_areas) <- with(ud_units, ft^2)
+
+neighborhood_collisions$areas <- as.numeric(neighborhood_areas)
+
+neighborhood_collisions <- neighborhood_collisions %>%
+  mutate(collisions_sqft = collisions_n/areas)
+  ```
+
 # Conclusions
 
-As you can see, R can do these basic operations rather easily. The only additional thing we may want to do, for now, is write our manipulated data to a shapefile with a simple call to `write_sf()`:
+As you can see, you can do these common GIS operations rather easily. The only additional thing we may want to do, for now, is write our manipulated data to a shapefile with a simple call to `write_sf()`:
 ```
 write_sf(neighborhood_collisions, "project/data/neighborhood_collisions.shp", delete_layer = TRUE)
 ```
