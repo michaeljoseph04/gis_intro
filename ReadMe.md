@@ -48,7 +48,7 @@ ggplot() +
 ```
 ![plot1](/images/plot1.jpeg)
 
-And we can see with `head()` (and `str()`) what the data looks like:
+And we can see with `head()` what the data looks like:
 ```
 OBJECTID PERIMETER S_HOOD L_HOOD L_HOODID SYMBOL SYMBOL2   AREA   ...
      <dbl>     <dbl> <chr>  <chr>     <dbl>  <dbl>   <dbl>  <dbl> ...
@@ -71,7 +71,7 @@ Now I'll import the collisions data. I also do some data wrangling because of th
 ```
 collisions <- read.csv("project/data/collisions.csv", stringsAsFactors = FALSE)
 ```
-This data is basically tidy: the columns specify variable names, the rows specify instances. There's only a little bit of wrangling to do. First, I'll change the first variable name in the csv, which is hard to manipulate, and drop the rows which have locations but no other information (a few of which are in the dataset), on the reasoning that we will
+This data is tidy: the columns specify variable names, the rows specify cases. There's only a little bit of wrangling to do. First, I'll change the first variable name in the csv, which is hard to manipulate, and drop the rows which have locations but no other information (a few of which are in the dataset), on the reasoning that we will
 ```
 # Change a misnamed column name in the csv
 names <- colnames(collisions)
@@ -107,7 +107,7 @@ Now we can join the data. I use `st_join` to specify a spatial join, and also sp
 ```
 collisions_join <- st_join(collisions_sf, neighborhoods, join = st_within)
 ```
-We can see the results of the join:
+We can see the results of the join, where the *x* and *y* variables of the *collisions* dataframe now have variables of the *neighborhoods* data joined to them:
 ```
 x        y OBJECTID PERIMETER            S_HOOD           ...
 1 -122.3329 47.70956      112  29413.55       Haller Lake ...
@@ -117,7 +117,6 @@ x        y OBJECTID PERIMETER            S_HOOD           ...
 5 -122.3300 47.61226       63  13225.23        First Hill ...
 6 -122.3050 47.60217       55  18241.55             Minor ...
 ```
-And let's take a look at the data frame, too:
 
 # Summarizing the Data
 Now we want to count how many crashes are within the each neighborhood, and visualize the result. Since the `sf` objects are data frames, this operation can be done simply by summarizing the data as one would normally do with the `group_by()` and `summarize()` workflow of `dplyr`, here `group_by()`, which will be set to the *S_HOOD* variable and `count()` (a quick call to just `count()` would have been sufficient, but I wanted to specify the variable name for future reference.)
