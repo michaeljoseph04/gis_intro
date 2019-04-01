@@ -9,6 +9,7 @@ In this introduction I'll cover:
 - Importing spatial data into R
 - Performing a spatial join
 - Visualizing spatial data
+- Other spatial operations (a dissolve) and joining to census tracts
 
 More advanced operations may be added in the future.
 
@@ -61,7 +62,10 @@ OBJECTID PERIMETER S_HOOD L_HOOD L_HOODID SYMBOL SYMBOL2   AREA   ...
 ```
 There are other variables as well. If you notice the last, *geometry*, you can see that the data also includes a variable for the geometries of the polygons in the shapefiles.
 
-For my purposes, I want to simply look further at the *S_HOOD* variable, which has the City Clerk's names for each of the major neighborhoods. I will want to join, later, on this variable.
+For my purposes, I want to simply look further at the *S_HOOD* variable, which has the City Clerk's names for each of the major neighborhoods. I will want to join, later, on this variable. One matter of data cleaning: we can drop the areas where *S_HOOD* has a value of *NA*. I have checked, and these mostly small areas such as [Kellogg Island](http://wikimapia.org/606799/Kellogg-Island), which should be connected to neighborhoods rather than considered seperate. A quick use of `dplyr`'s `drop_na()` can do that, which we can pipe, rather than repeatedly assign the variable. Though in this case the code is just about as long either way, it is good habit and leads to more readable code:
+```
+neighborhods <- neighborhoods %>% drop_na(S_HOOD)
+```
 
 One last matter before moving on to the collisions data: it is important to determine (and, for later, retrieve) the coordinate reference system from the shapefile-become-sf:
 ```
@@ -71,13 +75,13 @@ Now I'll import the collisions data. I also do some data wrangling because of th
 ```
 collisions <- read.csv("project/data/collisions.csv", stringsAsFactors = FALSE)
 ```
-This data is tidy: the columns specify variable names, the rows specify cases. There's only a little bit of wrangling to do. First, I'll change the first variable name in the csv, which is hard to manipulate, and drop the rows which have locations but no other information (a few of which are in the dataset), on the reasoning that we will
+This data is tidy: the columns specify variable names, the rows specify cases. There's only a little bit of wrangling to do. First, I'll change the first variable name in the csv, which is hard to manipulate, and drop the rows which have locations but no other information (a few of which are in the dataset), using `drop_na()`, this time with all fields specified. The reasoning is that if there is a missing value, especially in the first two fields, we can't plot it. Of course, these data wrangling tasks should be done with care and attention to how they affect the entire analysis:
 ```
 # Change a misnamed column name in the csv
 names <- colnames(collisions)
 names[1] <-"X"
 colnames(collisions) <- names
-collisions <- na.omit(collisions)
+collisions <- collisions %>% drop_na()
 ```
 Then I will filter to retrieve the collisions from 2018. This involves some data manipulation with `dplyr`. First, I select only the x and y columns and the date variable. I choose to rename the variables as I go (by specifying first the desired field name just for ease of reference. Then I create a field with `mutate()` in which I extract the first four characters of the date variable. For this I use the substring function `substr`, in which I specify the point to start and stop extracting characters in the date string. Since I am only going to be using dates from 2018, I actually replace the old date field by assigning it the same variable name ("date"). From there, I filter for the values of 2018 and then drop the date field, leaving me with just the coordinates:
 ```
@@ -87,7 +91,7 @@ collisions <- collisions %>%
   filter(year == "2018") %>%
   select(-date)
 ```
-Next, I take the resulting collisions data frame (actually, a tibble) and turn it into a `sf` object. The City of Seattle confirms that the coordinate reference system is the same as the shapefile of the neighborhoods (WGS-84 or EPSG:4326), and so I set it to the crs variable I extracted from that shapefile:
+Next, I take the resulting collisions data frame and turn it into a `sf` object. The City of Seattle confirms that the coordinate reference system is the same as the shapefile of the neighborhoods (WGS-84 or EPSG:4326), and so I set it to the crs variable I extracted from that shapefile:
 ```
 collisions_sf <- st_as_sf(collisions,
                    coords = c('x', 'y'),
@@ -142,7 +146,7 @@ S_HOOD          collisions_n
 (As an aside, this detaching and re-attaching geometries here has to be done because `sf` can't yet join spatial objects to spatial objects directly. But as you can see, it  makes intuitive sense from within the workflow to see geometry data as "sticky": the workflow is from extracting and manipulating the spatial data *variables* like any other tidy data, then joining the variables back to the data they came from, when they want to be used in context with all the other variables. The `sf` workflow just allows the geometries to unstick and stick back on when we want them.)
 
 # Visualizing
-As mentioned above, we have to join the count data back to the original neighborhood data in order to see it in context with the rest of the variables. Just as in any GIS interface, there's no need for any spatial joins here at all, but just a joining of the data: `sf` lets me just do this with a simple `left_join()` on the *S_HOOD* variable:
+As mentioned above, we have to join the count data back to the original neighborhood data in order to see it in context with the rest of the variables. Just as in any GIS interface, there's no need for any spatial joins here at all, but just a joining of the data: `sf` lets me just do this with a simple `left_join()` on the *S_HOOD* variable.
 ```
 neighborhood_collisions <- left_join(neighborhoods,
                                      collisions_count,
@@ -164,18 +168,70 @@ ggplot() +
   ```
   ![plot6](/images/plot6.jpeg)
 
-A common operation would be not plotting just the count but the count per area. The City Clerk neighborhood's file has this already calculated in square feet in the *AREA* field and so a simple change of the `fill` argument to `collisions_n/AREA` will plot the collisions per sq.ft., a more accurate and informative chloropleth map. If we wanted to make the calculation ourself, however, `st_area()` in `sf` allows us to do this (with the help of the `lgeom` package, which must be loaded), and the `units` package to convert the result, which is in square meters, to square feet. We then simply add this variable (after converting it to a decimal result) to our data (we can just use `$`) and use `mutate` to add another variable which would be the collisions per square foot. This then can be used for plotting the more accurate map, as far as chloropleths can truly be said to be accurate:
+However, a common operation would be not plotting just the count but the count per area. The City Clerk neighborhood's file has this already calculated in square feet in the *AREA* field and so a simple change of the `fill` argument to `collisions_n/AREA` will plot the collisions per sq.ft., a more accurate and informative chloropleth map. If we wanted to make the calculation ourself, however, `st_area()` in `sf` allows us to do this (with the help of the `lgeom` package, which must be loaded), and the `units` package to convert the result, which is in square meters, to square feet. We then simply add this variable (after converting it to a decimal result) to our data (we can just use `$`) and use `mutate` to add another variable which would be the collisions per square foot. This then can be used for plotting the more accurate map:
 ```
 library(lwgeom)
 library(units)
 neighborhood_areas <- st_area(neighborhood_collisions)
 units(neighborhood_areas) <- with(ud_units, ft^2)
 
-neighborhood_collisions$areas <- as.numeric(neighborhood_areas)
+neighborhood_collisions$areas <- as.numeric(neighborhood_areas) #add row, convert to numeric
 
 neighborhood_collisions <- neighborhood_collisions %>%
   mutate(collisions_sqft = collisions_n/areas)
+
+ggplot()+
+    geom_sf(data = neighborhood_collisions, aes(fill = collisions_sqft)) +
+    labs(fill = "Seattle Collision Density, 2018 (Collisions per sqft.)") +
+    scale_fill_continuous(low = "grey90",
+                          high = "darkblue",
+                          labels=comma)+
+    theme_bw() +
+    theme(axis.text.x = element_blank()) +
+    theme(axis.text.y = element_blank()) +
+    theme(axis.ticks.x = element_blank()) +
+    theme(axis.ticks.y = element_blank())
   ```
+  ![plotF](/images/plotF.jpeg)
+
+# Other Operations
+
+We can also perform another common operation, which is to join this data to census tracts. In what follows, we will use the `tigris` and `acs` packages to do this. `acs` requires an API key, which can be obtained [from the U.S. Census Bureau](https://api.census.gov/data/key_signup.html) easily. See `help(package="acs")` for instructions on how to set this up easily, with a quick use of `api.key.install(key="YOUR API KEY")`.
+
+Our tasks will be, then:
+- Dissolving the neighborhood boundaries object to obtain a city boundary
+- Downloading Census data and selecting those within  the city boundaries
+- Joining the collision data to the tracts
+
+We can dissolve the city neighborhoods by simply creating a group within the sf which includes all of the neighborhoods, and summarizing over them:
+```
+s_city <- neighborhoods %>%
+  mutate(group = 1) %>%
+  group_by(group) %>%
+  summarize()
+```
+The result is what you would expect, a dissolved polygon:
+![plot7](/images/plot7.jpeg)
+
+Now, let's get the census tracts. We can set the environment so that we download simple features data with the tigris package, and put it in the cache as we work (rather than download it to a directory). Then with a call to `tracts()` we download the county data (specifying cb as true for a simpler geometry, rather than a 500k resolution geometry):
+```
+library(tigris)
+
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+s_tracts <- tracts(state="WA", county="King", cb=TRUE)
+```
+Next, we transform the tracts *sf* from its coordinate reference system into the reference system used by the Seattle census tracts, and then extract the census tracts which overlap with the city boundaries by simply subsetting one to the other:
+```
+s_tracts <- st_transform(s_tracts, crs=s_crs)
+s_city_tracts <- s_tracts[s_city,]
+
+```
+Plotting this shows us the census tracts:
+![plot8](/images/plot8.jpeg)
+
+The shape is slightly different because some of the tracts share edges with the border of the city. We can clean this if we want, but for now let's just move on. Because immediately we can then go about all of the spatial joining to the census tracts just as we did above, and the calculations for density by the tract's area in square feet. This gives us another detailed map when we plot it:
+![plotTract](/images/plotTract.jpeg)
 
 # Conclusions
 
@@ -186,4 +242,4 @@ write_sf(neighborhood_collisions, "project/data/neighborhood_collisions.shp", de
 
 There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future.
 
-In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic elements useful for presentation-quality material. You might also want to see the `sf` package's [documentation](https://r-spatial.github.io/sf/) for more information, in particular their [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/sf.pdf), which works as a handy graphical summary of the package's approach to many common spatial data manipulation operations.
+In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic elements useful for presentation-quality material. You might also want to see the `sf` package's [documentation](https://r-spatial.github.io/sf/) for more information, in particular their [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/sf.pdf), which works as a handy graphical summary of the package's approach to many common spatial data manipulation operations. You may also want to check out the `tigris`, `acs` and `tidycensus` packages for info on easily retrieving and manipulating census data with R.
