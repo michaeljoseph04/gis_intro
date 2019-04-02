@@ -368,7 +368,11 @@ As you can see, you can do these common GIS operations rather easily. The only a
 ```
 write_sf(neighborhood_collisions, "project/data/neighborhood_collisions.shp", delete_layer = TRUE)
 ```
+And our joined US Census Data:
+```
+write_sf(s_cars, "project/data/s_cars.shp", delete_layer = TRUE)
+```
 
-There are many more things we can do with this data now within R. I will have further introductions to spatial analysis with these workflows in the future.
+There even more things we can do with everything we've done now within R. I will have further introductions to spatial analysis with these workflows in the future.
 
 In the meantime, for more information on visualizing the data in a more sophisticated manner than I have attempted here, you may want to check out [r-spatial's great series of posts on making maps](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html) in R, which also involve including many of the traditional cartographic elements useful for presentation-quality material. You might also want to see the `sf` package's [documentation](https://r-spatial.github.io/sf/) for more information, in particular their [cheatsheet](https://github.com/rstudio/cheatsheets/blob/master/sf.pdf), which works as a handy graphical summary of the package's approach to many common spatial data manipulation operations. You may also want to check out the `tigris`, `acs` and `tidycensus` packages for info on easily retrieving and manipulating census data with R.
