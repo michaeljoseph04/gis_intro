@@ -299,6 +299,7 @@ ggplot(s_cars, aes(x=cars/areas, y=collisions_sqft)) +
   theme_classic()
 ```
 ![plot-cars](/images/plot-cars.jpeg)
+
 Now let's look at collision density vs. the density of households without cars:
 ```
 ggplot(s_cars, aes(x=nocars/areas, y=collisions_sqft)) +
@@ -312,11 +313,14 @@ ggplot(s_cars, aes(x=nocars/areas, y=collisions_sqft)) +
   scale_y_continuous(labels=comma)+
   theme_classic()
 ```
+
 ![plot-0-cars](/images/plot-0-cars.jpeg)
 We could continue to explore the data in this way, and build better models using other Census data. This, and the changing of the geographies, is essentially how transportation planners have constructed [Traffic Analysis Zones](https://en.wikipedia.org/wiki/Traffic_analysis_zone), and how they document trends concerning them. However, by way of bringing this to a close, we should note how little we have modeled to produce these results compared to more sophisticated transportation planning analyses, and, especially, how little there is a basis for concluding anything about the relationship between collisions and the mode of travel in each census tract.
 
 Let's be clear: our initial exploration of trends appears to show that we have positive relationship between collisions per square foot and the density of households with cars. But this relationship is still very unclear. We see this from comaring first plot to our second, which, while showing a steeper positive relationship also, has less frequency of collisions as the density of households with no cars available increases. One might conclude there is not really a realtionship between the number of collisions and the number of households with cars available from this data. In fact, if we plot our third census variable, we could come up with the opposite idea: that neighborhoods with more cars available have lower collision density!
+
 ![plot-3-cars](/images/plot-3-cars.jpeg)
+
 This is not to introduce skepticism concerning our work, just to make clear that they are not results, but moments in the *data exploration* phase, useful to building a more robust model. This is immediately explained by mapping households with no cars available and with three or more cars, which is something now completely familiar to us:
 ```
 ggplot()+
@@ -332,7 +336,9 @@ ggplot()+
   theme(axis.ticks.x = element_blank()) +
   theme(axis.ticks.y = element_blank())
 ```
+
 ![map-0-cars](/images/map-0-cars.jpeg)
+
 ```
 ggplot()+
     geom_sf(data = s_cars, aes(fill = threecars)) +
@@ -347,6 +353,7 @@ ggplot()+
     theme(axis.ticks.x = element_blank()) +
     theme(axis.ticks.y = element_blank())
 ```
+
 ![map-3-cars](/images/map-3-cars.jpeg)
 Clearly, the relationship of collisions and households has to do with larger patterns in the urban form, including the walkability and bikability of the city, and also the sheer amount of activity within the core versus many of the outer neighborhoods (which might account for collisions showing a negative relationship with households with 3+ cars available). While we have accounted for some of this by using densities rather than counts, we have not at all considered the density of traffic or interactions between travelers, and the differences in available modes as a function of the differences in the infrastructure.
 
