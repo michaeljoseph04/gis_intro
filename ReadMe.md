@@ -9,8 +9,8 @@ In this introduction I'll cover:
 - Importing spatial data into R
 - Performing a spatial join
 - Visualizing spatial data
-- Other spatial operations (a dissolve) and joining to census tracts
-- Looking for trends in spatial data
+- Other spatial operations (a dissolve) and joining to US Census tracts
+- Looking for trends with US Census data
 
 More advanced operations may be added in the future.
 
@@ -195,7 +195,7 @@ ggplot()+
   ```
   ![plotF](/images/plotF.jpeg)
 
-# Other Operations
+# Other Operations: Joins and the Census
 
 We can also perform another common operation, which is to join this data to census tracts. In what follows, we will use the `tigris` package.
 
@@ -236,7 +236,8 @@ The shape is slightly different because some of the tracts share edges with the 
 
 Now we can fetch data from the Census and look for spatial correlations (which, as in this example, might be tenuous), or simply research using the Census data with the addition of the data we joined.
 
-#Looking for Trends
+#Looking for Trends with Census Data
+
 We can download Census data with the `acs` package, and Kyle Walker's handy `tidycensus`, which uses `acs`. `acs`, a beautiful package developed for planners and urban spatial analysts by the data team of Puget Sound Regional Council, requires an API key, which can be obtained easily [from the U.S. Census Bureau](https://api.census.gov/data/key_signup.html). See `help(package="acs")` for instructions on how to set this up easily, with a quick use of `api.key.install(key="YOUR API KEY")`. `tidycensus` uses `acs` but makes the process even easier by returning fetched data directly as tidy data frames. It also works well to join census data directly to simple feature geometries, so we will be fetching this. So, our workflow will look like this:
 
 - Fetch Census data
