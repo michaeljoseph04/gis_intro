@@ -10,6 +10,7 @@ In this introduction I'll cover:
 - Performing a spatial join
 - Visualizing spatial data
 - Other spatial operations (a dissolve) and joining to census tracts
+- Looking for trends in spatial data
 
 More advanced operations may be added in the future.
 
@@ -196,11 +197,11 @@ ggplot()+
 
 # Other Operations
 
-We can also perform another common operation, which is to join this data to census tracts. In what follows, we will use the `tigris` and `acs` packages to do this. `acs` requires an API key, which can be obtained [from the U.S. Census Bureau](https://api.census.gov/data/key_signup.html) easily. See `help(package="acs")` for instructions on how to set this up easily, with a quick use of `api.key.install(key="YOUR API KEY")`.
+We can also perform another common operation, which is to join this data to census tracts. In what follows, we will use the `tigris` package.
 
 Our tasks will be, then:
 - Dissolving the neighborhood boundaries object to obtain a city boundary
-- Downloading Census data and selecting those within  the city boundaries
+- Downloading Census data and selecting those within the city boundaries
 - Joining the collision data to the tracts
 
 We can dissolve the city neighborhoods by simply creating a group within the sf which includes all of the neighborhoods, and summarizing over them:
@@ -233,7 +234,123 @@ Plotting this shows us the census tracts:
 The shape is slightly different because some of the tracts share edges with the border of the city. We can clean this if we want, but for now let's just move on. Because immediately we can then go about all of the spatial joining to the census tracts just as we did above, and the calculations for density by the tract's area in square feet. This gives us another detailed map when we plot it:
 ![plotTract](/images/plotTract.jpeg)
 
-Now we can fetch data from the Census and look for spatial correlations (which, as in this example, might be tenuous), or simply research using the Census data with the addition of the data we joined. 
+Now we can fetch data from the Census and look for spatial correlations (which, as in this example, might be tenuous), or simply research using the Census data with the addition of the data we joined.
+
+#Looking for Trends
+We can download Census data with the `acs` package, and Kyle Walker's handy `tidycensus`, which uses `acs`. `acs`, a beautiful package developed for planners and urban spatial analysts by the data team of Puget Sound Regional Council, requires an API key, which can be obtained easily [from the U.S. Census Bureau](https://api.census.gov/data/key_signup.html). See `help(package="acs")` for instructions on how to set this up easily, with a quick use of `api.key.install(key="YOUR API KEY")`. `tidycensus` uses `acs` but makes the process even easier by returning fetched data directly as tidy data frames. It also works well to join census data directly to simple feature geometries, so we will be fetching this. So, our workflow will look like this:
+
+- Fetch Census data
+- Wrangle for the kinds of data we want
+- Join to our data based on collisions
+- Look for trends
+
+First, let's fetch the data. We will be looking at a table familiar to many planners, [American Community Survey data table B08141](https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk) on the means of transportation to work. It shows a breakdown of the various means of transportation for every census tract, and can be used to inform and justify policy decisions which would improve transportation planning in certain areas. What I want to see for the purposes of this introduction is something at once very basic and also complex: the varying degrees of car ownership of the households and the number of collisions per square foot. Notice that the table itself has many more demographic characteristics, including means of transportation to work: perhaps one of these may be better to use if we are looking at the relationship of collisions to the demography of neighborhoods. More on this later. For now, let's do the work of fetching the data.
+
+The data can be retrieved with  `tidycensus`'s' `get_acs()`. This assumes a little familarity with `acs()`, and I recommend looking at the latter more in depth to get a handle on exactly how to fetch data. But if you know how to work with Census data normally, the method is intuitive: you spend a lot of time making a geography for the data you want to retrieve, and then you specify the tables from which you want to fetch data, then usually wrangle it into a tidy data frame. `tidycensus` makes this even easier than `acs()`, and does this all in one go: in the arguments, you specify the geography of the data you want, the table, and where you want it from. What's more, it uses `tigris` just as we did above to append simple feature data to the geography, if you specify *TRUE* in the `geometry` argument. I am specifying *FALSE* because we already have that data:
+
+```
+library(tidycensus)
+# Make sure API key set up
+
+s_acs <- get_acs(geography = "tract", table = "B08141",
+                state ="WA", county="King County", geometry = TRUE)
+```
+We now have the data. Each tract is specified with a *GEOID* and a *NAME*, and variables are listed as *variable*. In American Community Survey data, like we are using here, the margin of error is specified in the *moe* field:
+```
+GEOID       NAME                                    variable   estimate   moe
+  <chr>       <chr>                                   <chr>         <dbl> <dbl>
+1 53033000100 Census Tract 1, King County, Washington B08141_001    4060.  401.
+2 53033000100 Census Tract 1, King County, Washington B08141_002     101.   61.
+3 53033000100 Census Tract 1, King County, Washington B08141_003    1871.  356.
+4 53033000100 Census Tract 1, King County, Washington B08141_004     972.  293.
+5 53033000100 Census Tract 1, King County, Washington B08141_005    1116.  371.
+6 53033000100 Census Tract 1, King County, Washington B08141_006    2224.  370.
+```
+While `acs`'s `fetch()` returns a description of the variable, `tidycensus` assumes you are pretty certain of the variables you want. If you are uncertain of what you are looking for but know the table you want to look up, you can use `acs` or simply look at the table on the Census website to confirm: for example, *B08141_001* is the variable showing the total number of households in the tract, while *B08141_002* shows the total number with no vehicles available to travel to work, and *B08141_005* shows the total number with three cars or more available.
+
+What I will do next is use `dplyr` to filter for these three variables with the `%in%` operator, which looks within a string of characters where we place the three fields we want. Next, I drop the *moe* field, then `spread()` the data across three fields. This will turn the data frame from one which has variables arranged by census tract to one where each census tract has the three variable fields we want to consider (it can be undone with `gather()`). We can then use the latter to make calculations with `mutate()`, and specify the number of households with cars available, the number with no cars, and the number with three or more cars available, which we will later reduce to a density (per square foot of the census tract, a figure we already have):
+
+```
+s_popcars <- s_acs %>%
+  filter(variable %in% c("B08141_001", "B08141_002", "B08141_005")) %>%
+  select(-moe) %>%
+  spread(key=variable, value=estimate) %>%
+  rename(total=B08141_001, nocars=B08141_002, threecars="B08141_005") %>%
+  mutate(pctcars = (total-nocars)/total) %>% #take the total-no cars to get number with cars
+  mutate(pctnocars = nocars/total)%>%
+  mutate(pctthreecars = threecars/total)
+```
+Now that we have that complete, we can make the join to the previous data which had census tracts, and keep all we need with `select()`:
+```
+s_cars <- left_join(tract_collisions, s_popcars, by="GEOID") %>%
+  select(GEOID, collisions_sqft, pctcars, pctnocars, geometry)
+```
+Now, if we plot this data, we can see certain trends. First let's start with the amount of households which do not have cars available per area vs. the number of collisions per square foot in each tract. A simple point plot will be able to display the trend, and `stat_smooth()` can also display what an ordinary least squares regression model (`lm`) looks like on the data:
+```
+ggplot(s_cars, aes(x=cars/areas, y=collisions_sqft)) +
+  geom_point()+
+  stat_smooth(method="lm", color="Orange", se=FALSE) +
+  labs(title="Collision Density by Density of Households with Cars Available
+       in Seattle Census Tracts")+
+  xlab("Households with 1, 2, or 3+ Cars / Sq.Ft.")+
+  ylab("Collisions / Sq.Ft.")+
+  scale_x_continuous(labels=comma)+
+  scale_y_continuous(labels=comma)+
+  theme_classic()
+```
+![plot-cars](/images/plot-cars.jpeg)
+Now let's look at collision density vs. the density of households without cars:
+```
+ggplot(s_cars, aes(x=nocars/areas, y=collisions_sqft)) +
+  geom_point()+
+  stat_smooth(method="lm", color="Orange", se=FALSE) +
+  labs(title="Collision Density by Density of Households with 0 Cars Available
+       in Seattle Census Tracts")+
+  xlab("Households with 0 Cars / Sq.Ft.")+
+  ylab("Collisions / Sq.Ft.")+
+  scale_x_continuous(labels=comma)+
+  scale_y_continuous(labels=comma)+
+  theme_classic()
+```
+![plot-0-cars](/images/plot-0-cars.jpeg)
+We could continue to explore the data in this way, and build better models using other Census data. This, and the changing of the geographies, is essentially how transportation planners have constructed [Traffic Analysis Zones](https://en.wikipedia.org/wiki/Traffic_analysis_zone), and how they document trends concerning them. However, by way of bringing this to a close, we should note how little we have modeled to produce these results compared to more sophisticated transportation planning analyses, and, especially, how little there is a basis for concluding anything about the relationship between collisions and the mode of travel in each census tract.
+
+Let's be clear: our initial exploration of trends appears to show that we have positive relationship between collisions per square foot and the density of households with cars. But this relationship is still very unclear. We see this from comaring first plot to our second, which, while showing a steeper positive relationship also, has less frequency of collisions as the density of households with no cars available increases. One might conclude there is not really a realtionship between the number of collisions and the number of households with cars available from this data. In fact, if we plot our third census variable, we could come up with the opposite idea: that neighborhoods with more cars available have lower collision density!
+![plot-3-cars](/images/plot-3-cars.jpeg)
+This is not to introduce skepticism concerning our work, just to make clear that they are not results, but moments in the *data exploration* phase, useful to building a more robust model. This is immediately explained by mapping households with no cars available and with three or more cars, which is something now completely familiar to us:
+```
+ggplot()+
+  geom_sf(data = s_cars, aes(fill = nocars/areas)) +
+  labs(fill = "Seattle Density of Households with 0 Cars Available, 2018
+       (by Census Tract)") +
+  scale_fill_continuous(low = "grey90",
+                        high = "darkblue",
+                        labels=comma)+
+  theme_bw() +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.text.y = element_blank()) +
+  theme(axis.ticks.x = element_blank()) +
+  theme(axis.ticks.y = element_blank())
+```
+![map-0-cars](/images/map-0-cars.jpeg)
+```
+ggplot()+
+    geom_sf(data = s_cars, aes(fill = threecars)) +
+    labs(fill = "Seattle Density of Households with 3+ Cars Available, 2018
+         (by Census Tract)") +
+    scale_fill_continuous(low = "grey90",
+                          high = "darkblue",
+                          labels=comma)+
+    theme_bw() +
+    theme(axis.text.x = element_blank()) +
+    theme(axis.text.y = element_blank()) +
+    theme(axis.ticks.x = element_blank()) +
+    theme(axis.ticks.y = element_blank())
+```
+![map-3-cars](/images/map-3-cars.jpeg)
+Clearly, the relationship of collisions and households has to do with larger patterns in the urban form, including the walkability and bikability of the city, and also the sheer amount of activity within the core versus many of the outer neighborhoods (which might account for collisions showing a negative relationship with households with 3+ cars available). While we have accounted for some of this by using densities rather than counts, we have not at all considered the density of traffic or interactions between travelers, and the differences in available modes as a function of the differences in the infrastructure.
+
+So, most fundamentally, we must go back to the basic assumption behind much of the exploration we have already done, and consider whether looking at demographic data based on one or two variables about census tracts can tell us anything remotely about collisions at all in the areas of the city where they appear (we also must consider collisions which emerge not because of local interactions, but interactions between local and non-local travelers). Again, this is not to undermine our faith in the data, just to underline the need for much more data exploration in order to build a model. What is encouraging is that model building, as every one dealing with these types of data know, is an iterative process: I hope that the tools above help make the phases of data exploration much easier to accomplish.
 
 # Conclusions
 

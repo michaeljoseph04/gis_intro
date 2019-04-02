@@ -189,3 +189,85 @@ ggplot()+
   theme(axis.text.y = element_blank()) +
   theme(axis.ticks.x = element_blank()) +
   theme(axis.ticks.y = element_blank())
+
+#Look for Trends by fetching acs data
+#make sure to set up your api key.
+library(tidycensus)
+
+#lookup MEANS OF TRANSPORTATION TO WORK BY VEHICLES AVAILABLE, B081410
+#https://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?src=bkmk
+s_acs <- get_acs(geography = "tract", table = "B08141",
+                state ="WA", county="King County", geometry = TRUE)
+
+s_popcars <- s_acs %>%
+  filter(variable %in% c("B08141_001", "B08141_002", "B08141_005")) %>%
+  select(-moe) %>%
+  spread(key=variable, value=estimate) %>%
+  rename(pop=B08141_001, nocars=B08141_002, threecars=B08141_005) %>%
+  mutate(cars = pop-nocars)
+
+s_cars <- left_join(tract_collisions, s_popcars, by="GEOID") %>%
+  select(GEOID, collisions_sqft, cars, nocars, threecars, areas, geometry)
+
+# Plot to explore data trends
+ggplot(s_cars, aes(x=cars/areas, y=collisions_sqft)) +
+  geom_point()+
+  stat_smooth(method="lm", color="Orange", se=FALSE) +
+  labs(title="Collision Density by Density of Households with Cars Available
+       in Seattle Census Tracts")+
+  xlab("Households with 1, 2, or 3+ Cars / Sq.Ft.")+
+  ylab("Collisions / Sq.Ft.")+
+  scale_x_continuous(labels=comma)+
+  scale_y_continuous(labels=comma)+
+  theme_classic()
+
+ggplot(s_cars, aes(x=nocars/areas, y=collisions_sqft)) +
+  geom_point()+
+  stat_smooth(method="lm", color="Orange", se=FALSE) +
+  labs(title="Collision Density by Density of Households with 0 Cars Available
+       in Seattle Census Tracts")+
+  xlab("Households with 0 Cars / Sq.Ft.")+
+  ylab("Collisions / Sq.Ft.")+
+  scale_x_continuous(labels=comma)+
+  scale_y_continuous(labels=comma)+
+  theme_classic()
+
+# Just to see how much more work we need to build an accurate model,
+# let's look at households with 3+ cars
+ggplot(s_cars, aes(x=threecars/areas, y=collisions_sqft)) +
+  geom_point()+
+  stat_smooth(method="lm", color="Orange", se=FALSE) +
+  labs(title="Collision Density by Density of Households with 3+ Cars Available
+       in Seattle Census Tracts")+
+  xlab("Percentage of Households with 3+ Cars / Sq.Ft.")+
+  ylab("Collisions / Sq.Ft.")+
+  scale_x_continuous(labels=comma)+
+  scale_y_continuous(labels=comma)+
+  theme_classic()
+
+# Plot maps to show the impact of policy decisions around these trends.
+ggplot()+
+  geom_sf(data = s_cars, aes(fill = nocars/areas)) +
+  labs(fill = "Seattle Density of Households with 0 Cars Available, 2018
+       (by Census Tract)") +
+  scale_fill_continuous(low = "grey90",
+                        high = "darkblue",
+                        labels=comma)+
+  theme_bw() +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.text.y = element_blank()) +
+  theme(axis.ticks.x = element_blank()) +
+  theme(axis.ticks.y = element_blank())
+
+ggplot()+
+  geom_sf(data = s_cars, aes(fill = threecars)) +
+  labs(fill = "Seattle Density of Households with 3+ Cars Available, 2018
+       (by Census Tract)") +
+  scale_fill_continuous(low = "grey90",
+                        high = "darkblue",
+                        labels=comma)+
+  theme_bw() +
+  theme(axis.text.x = element_blank()) +
+  theme(axis.text.y = element_blank()) +
+  theme(axis.ticks.x = element_blank()) +
+  theme(axis.ticks.y = element_blank())
