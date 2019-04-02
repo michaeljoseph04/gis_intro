@@ -315,6 +315,7 @@ ggplot(s_cars, aes(x=nocars/areas, y=collisions_sqft)) +
 ```
 
 ![plot-0-cars](/images/plot-0-cars.jpeg)
+
 We could continue to explore the data in this way, and build better models using other Census data. This, and the changing of the geographies, is essentially how transportation planners have constructed [Traffic Analysis Zones](https://en.wikipedia.org/wiki/Traffic_analysis_zone), and how they document trends concerning them. However, by way of bringing this to a close, we should note how little we have modeled to produce these results compared to more sophisticated transportation planning analyses, and, especially, how little there is a basis for concluding anything about the relationship between collisions and the mode of travel in each census tract.
 
 Let's be clear: our initial exploration of trends appears to show that we have positive relationship between collisions per square foot and the density of households with cars. But this relationship is still very unclear. We see this from comaring first plot to our second, which, while showing a steeper positive relationship also, has less frequency of collisions as the density of households with no cars available increases. One might conclude there is not really a realtionship between the number of collisions and the number of households with cars available from this data. In fact, if we plot our third census variable, we could come up with the opposite idea: that neighborhoods with more cars available have lower collision density!
@@ -355,6 +356,7 @@ ggplot()+
 ```
 
 ![map-3-cars](/images/map-3-cars.jpeg)
+
 Clearly, the relationship of collisions and households has to do with larger patterns in the urban form, including the walkability and bikability of the city, and also the sheer amount of activity within the core versus many of the outer neighborhoods (which might account for collisions showing a negative relationship with households with 3+ cars available). While we have accounted for some of this by using densities rather than counts, we have not at all considered the density of traffic or interactions between travelers, and the differences in available modes as a function of the differences in the infrastructure.
 
 So, most fundamentally, we must go back to the basic assumption behind much of the exploration we have already done, and consider whether looking at demographic data based on one or two variables about census tracts can tell us anything remotely about collisions at all in the areas of the city where they appear (we also must consider collisions which emerge not because of local interactions, but interactions between local and non-local travelers). Again, this is not to undermine our faith in the data, just to underline the need for much more data exploration in order to build a model. What is encouraging is that model building, as every one dealing with these types of data know, is an iterative process: I hope that the tools above help make the phases of data exploration much easier to accomplish.
