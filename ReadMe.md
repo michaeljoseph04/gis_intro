@@ -1,4 +1,4 @@
-## GIS in R with sf
+##Introduction to R as a GIS
 
 *An introduction to using R as a GIS for urban spatial analysts*
 
